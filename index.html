@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>The Big Reveal 👶</title>
+    <style>
+        :root {
+            --pink: #ffb7c5;
+            --blue: #a2d2ff;
+            --silver: #C0C0C0;
+        }
+
+        body {
+            margin: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            background-color: #f4f4f9;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            touch-action: none;
+            overflow: hidden;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .header h1 {
+            color: #444;
+            margin: 0;
+            font-size: 2rem;
+        }
+
+        .card-container {
+            position: relative;
+            width: 320px;
+            height: 480px;
+            box-shadow: 0 15px 35px rgba(0,0,0,0.15);
+            border-radius: 25px;
+            overflow: hidden;
+            background: white;
+            user-select: none;
+        }
+
+        #reveal-layer {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 1;
+        }
+
+        #reveal-layer.boy { background: linear-gradient(135deg, #fff, var(--blue)); }
+        #reveal-layer.girl { background: linear-gradient(135deg, #fff, var(--pink)); }
+
+        .result-text {
+            font-size: 2.5rem;
+            font-weight: 900;
+            color: #333;
+            text-transform: uppercase;
+            letter-spacing: 3px;
+            text-shadow: 1px 1px 0px rgba(255,255,255,0.5);
+        }
+
+        .baby-emoji { 
+            font-size: 6rem;
+            margin-bottom: 10px;
+        }
+
+        #scratch-canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 2;
+            cursor: crosshair;
+        }
+
+        .footer {
+            margin-top: 25px;
+            text-align: center;
+        }
+
+        .instructions {
+            color: #999;
+            font-size: 0.9rem;
+            margin-bottom: 15px;
+        }
+
+        .controls {
+            display: flex;
+            gap: 15px;
+        }
+
+        button {
+            padding: 10px 20px;
+            border-radius: 12px;
+            border: 2px solid #ddd;
+            background: white;
+            cursor: pointer;
+            font-weight: bold;
+            color: #666;
+            transition: all 0.2s;
+        }
+
+        button.active {
+            border-color: #333;
+            background: #333;
+            color: white;
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+        }
+    </style>
+</head>
+<body>
+
+    <div class="header">
+        <h1>Boy or Girl?</h1>
+    </div>
+
+    <div class="card-container" id="container">
+        <!-- Beneath the surface -->
+        <div id="reveal-layer" class="boy">
+            <div class="baby-emoji">👶</div>
+            <div class="result-text" id="label">It's a BOY!</div>
+        </div>
+        
+        <!-- The scratchable surface -->
+        <canvas id="scratch-canvas"></canvas>
+    </div>
+
+    <div class="footer">
+        <div class="instructions">Use your finger or mouse to scratch the silver!</div>
+        
+        <div class="controls">
+            <button id="btn-boy" class="active">Set to Boy</button>
+            <button id="btn-girl">Set to Girl</button>
+            <button id="btn-reset">Reset Card</button>
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('scratch-canvas');
+        const ctx = canvas.getContext('2d', { willReadFrequently: true });
+        const container = document.getElementById('container');
+        const revealLayer = document.getElementById('reveal-layer');
+        const label = document.getElementById('label');
+        
+        let isDrawing = false;
+        let lastX, lastY;
+
+        function initCanvas() {
+            canvas.width = container.offsetWidth;
+            canvas.height = container.offsetHeight;
+            
+            // Draw scratchable surface (Silver sparkle effect)
+            ctx.globalCompositeOperation = 'source-over';
+            ctx.fillStyle = '#C0C0C0'; 
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            // Sparkles
+            for(let i=0; i<1000; i++) {
+                ctx.fillStyle = `rgba(255,255,255,${Math.random() * 0.3})`;
+                ctx.fillRect(Math.random()*canvas.width, Math.random()*canvas.height, 2, 2);
+            }
+
+            // Text on top
+            ctx.font = '900 24px sans-serif';
+            ctx.fillStyle = '#888';
+            ctx.textAlign = 'center';
+            ctx.fillText('SCRATCH TO REVEAL', canvas.width/2, canvas.height/2);
+            
+            ctx.font = '16px sans-serif';
+            ctx.fillText('✨✨✨', canvas.width/2, canvas.height/2 + 30);
+        }
+
+        function scratch(e) {
+            if (!isDrawing) return;
+            
+            const rect = canvas.getBoundingClientRect();
+            const x = (e.clientX || (e.touches && e.touches[0].clientX)) - rect.left;
+            const y = (e.clientY || (e.touches && e.touches[0].clientY)) - rect.top;
+
+            ctx.globalCompositeOperation = 'destination-out';
+            ctx.lineWidth = 45;
+            ctx.lineCap = 'round';
+            ctx.beginPath();
+            ctx.moveTo(lastX, lastY);
+            ctx.lineTo(x, y);
+            ctx.stroke();
+
+            lastX = x;
+            lastY = y;
+        }
+
+        // Logic for setting gender 
+        document.getElementById('btn-boy').onclick = () => {
+            revealLayer.className = 'boy';
+            label.innerText = "It's a BOY!";
+            document.getElementById('btn-boy').classList.add('active');
+            document.getElementById('btn-girl').classList.remove('active');
+            initCanvas();
+        };
+
+        document.getElementById('btn-girl').onclick = () => {
+            revealLayer.className = 'girl';
+            label.innerText = "It's a GIRL!";
+            document.getElementById('btn-girl').classList.add('active');
+            document.getElementById('btn-boy').classList.remove('active');
+            initCanvas();
+        };
+
+        document.getElementById('btn-reset').onclick = () => initCanvas();
+
+        canvas.onmousedown = (e) => { 
+            isDrawing = true; 
+            const rect = canvas.getBoundingClientRect();
+            lastX = e.clientX - rect.left; 
+            lastY = e.clientY - rect.top; 
+        };
+        
+        canvas.ontouchstart = (e) => { 
+            isDrawing = true; 
+            const rect = canvas.getBoundingClientRect();
+            lastX = e.touches[0].clientX - rect.left;
+            lastY = e.touches[0].clientY - rect.top;
+            e.preventDefault();
+        };
+        
+        window.onmousemove = scratch;
+        window.ontouchmove = (e) => { scratch(e); e.preventDefault(); };
+        window.onmouseup = () => isDrawing = false;
+        window.ontouchend = () => isDrawing = false;
+
+        window.onload = initCanvas;
+    </script>
+</body>
+</html>
