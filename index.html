@@ -119,6 +119,7 @@
         <div class="instructions">Use your finger or mouse to scratch the silver!</div>
     </div>
 
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
     <script>
         const canvas = document.getElementById('scratch-canvas');
         const ctx = canvas.getContext('2d', { willReadFrequently: true });
@@ -126,6 +127,7 @@
         
         let isDrawing = false;
         let lastX, lastY;
+        let isRevealed = false;
 
         function initCanvas() {
             canvas.width = container.offsetWidth;
@@ -166,6 +168,54 @@
 
             lastX = x;
             lastY = y;
+
+            if (!isRevealed) checkReveal();
+        }
+
+        function checkReveal() {
+            const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+            const pixels = imageData.data;
+            let transparentPixels = 0;
+
+            for (let i = 0; i < pixels.length; i += 4) {
+                if (pixels[i + 3] === 0) transparentPixels++;
+            }
+
+            const percentage = (transparentPixels / (pixels.length / 4)) * 100;
+            
+            if (percentage > 40) {
+                isRevealed = true;
+                // Fade out the remaining canvas
+                canvas.style.transition = 'opacity 1s ease';
+                canvas.style.opacity = '0';
+                
+                // Fire pink confetti!
+                fireConfetti();
+                
+                setTimeout(() => canvas.remove(), 1000);
+            }
+        }
+
+        function fireConfetti() {
+            const count = 200;
+            const defaults = {
+                origin: { y: 0.7 },
+                colors: ['#FFB7C5', '#FF69B4', '#FF1493', '#FFFFFF'] // Various shades of pink
+            };
+
+            function fire(particleRatio, opts) {
+                confetti({
+                    ...defaults,
+                    ...opts,
+                    particleCount: Math.floor(count * particleRatio)
+                });
+            }
+
+            fire(0.25, { spread: 26, startVelocity: 55 });
+            fire(0.2, { spread: 60 });
+            fire(0.35, { spread: 100, decay: 0.91, scalar: 0.8 });
+            fire(0.1, { spread: 120, startVelocity: 25, decay: 0.92, scalar: 1.2 });
+            fire(0.1, { spread: 120, startVelocity: 45 });
         }
 
         canvas.onmousedown = (e) => { 
